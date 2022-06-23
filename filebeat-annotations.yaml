@@ -1,0 +1,21 @@
+logging.metrics.enabled: false
+#processor for all
+processors:
+    - add_cloud_metadata:
+    - add_kubernetes_metadata:
+    - add_fields:
+        fields:
+            k8s_cluster_name: ${K8S_CLUSTER_NAME}
+filebeat.autodiscover:
+    providers:
+# basic section
+# and activate hint 
+      - type: kubernetes
+        hints.enabled: true
+        hints.default_config:
+          type: container
+          paths:
+            - /var/log/containers/*-${data.container.id}.log
+#output to logstash
+output.logstash:
+  hosts: ["logstash-beats-tcp:5044"]

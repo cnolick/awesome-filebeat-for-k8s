@@ -1,0 +1,42 @@
+logging.metrics.enabled: false
+#processor for all
+processors:
+    - add_cloud_metadata:
+    - add_kubernetes_metadata:
+    - add_fields:
+        fields:
+            k8s_cluster_name: ${K8S_CLUSTER_NAME}
+filebeat.autodiscover:
+    providers:
+# basic section
+      - type: kubernetes
+        node: ${NODE_NAME}
+        tail_files: "true"
+        ignore_older: 1h
+        add_resource_metadata.namespace.enabled: true
+# start template
+        templates:
+# java condition
+          - condition:
+              equals.kubernetes.labels.typelog: "java"
+            config:
+              - type: container
+                paths:
+                  - "/var/log/containers/*${data.kubernetes.container.id}.log"
+                multiline.pattern: '^\['
+                multiline.negate: true
+                multiline.match: after
+                multiline.max_lines: 500
+# throw out multiline condition for no duplicate logs
+          - condition:
+              not:
+                or:
+                    - equals.kubernetes.labels.typelog: "java"
+            config:
+              - type: container
+                paths:
+                  - "/var/log/containers/*${data.kubernetes.container.id}.log"
+
+#output to logstash
+output.logstash:
+  hosts: ["logstash-beats-tcp:5044"]
